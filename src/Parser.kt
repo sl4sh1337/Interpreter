@@ -22,6 +22,12 @@ class NonTerm(val type : NonTermType) : GraphItem {
                     ">" -> return if(children[3].visit().toInt() > children[1].visit().toInt()) 1.toString() else 0.toString()
                 }
             }
+            NonTermType.ifexpr -> {
+                var cond = children[9].visit()
+                if(cond != "0")
+                    return children[5].visit()
+                else return children[1].visit()
+            }
         }
         return ""
     }
@@ -29,7 +35,7 @@ class NonTerm(val type : NonTermType) : GraphItem {
     override var children: MutableList<GraphItem> = mutableListOf()
 
     enum class NonTermType {
-        program, expr, constexpr, binexpr
+        program, expr, constexpr, binexpr, ifexpr
     }
 }
 
@@ -59,7 +65,7 @@ class Parser {
                 is NonTerm -> when(x.type) {
 
                     NonTerm.NonTermType.program -> when(tokenStream[i].type) {
-                        Token.TokenType.identifier, Token.TokenType.number, Token.TokenType.minus, Token.TokenType.ob -> {
+                        Token.TokenType.identifier, Token.TokenType.number, Token.TokenType.minus, Token.TokenType.ob, Token.TokenType.osb -> {
                             var p = stack.last()
                             stack.removeAt(stack.lastIndex)
                             stack.add(NonTerm(NonTerm.NonTermType.expr))
@@ -78,6 +84,12 @@ class Parser {
                             var p = stack.last()
                             stack.removeAt(stack.lastIndex)
                             stack.add(NonTerm(NonTerm.NonTermType.binexpr))
+                            p.children.add(stack.last())
+                        }
+                        Token.TokenType.osb -> {
+                            var p = stack.last()
+                            stack.removeAt(stack.lastIndex)
+                            stack.add(NonTerm(NonTerm.NonTermType.ifexpr))
                             p.children.add(stack.last())
                         }
                     }
@@ -112,6 +124,35 @@ class Parser {
                             stack.add(NonTerm(NonTerm.NonTermType.expr))
                             p.children.add(stack.last())
                             stack.add(Token(Token.TokenType.ob))
+                            p.children.add(stack.last())
+                        }
+                    }
+
+                    NonTerm.NonTermType.ifexpr -> when(tokenStream[i].type){
+                        Token.TokenType.osb -> {
+                            var p = stack.last()
+                            stack.removeAt(stack.lastIndex)
+                            stack.add(Token(Token.TokenType.cb))
+                            p.children.add(stack.last())
+                            stack.add(NonTerm(NonTerm.NonTermType.expr))
+                            p.children.add(stack.last())
+                            stack.add(Token(Token.TokenType.ob))
+                            p.children.add(stack.last())
+                            stack.add(Token(Token.TokenType.colon))
+                            p.children.add(stack.last())
+                            stack.add(Token(Token.TokenType.cb))
+                            p.children.add(stack.last())
+                            stack.add(NonTerm(NonTerm.NonTermType.expr))
+                            p.children.add(stack.last())
+                            stack.add(Token(Token.TokenType.ob))
+                            p.children.add(stack.last())
+                            stack.add(Token(Token.TokenType.qm))
+                            p.children.add(stack.last())
+                            stack.add(Token(Token.TokenType.csb))
+                            p.children.add(stack.last())
+                            stack.add(NonTerm(NonTerm.NonTermType.expr))
+                            p.children.add(stack.last())
+                            stack.add(Token(Token.TokenType.osb))
                             p.children.add(stack.last())
                         }
                     }
