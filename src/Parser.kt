@@ -28,6 +28,19 @@ class NonTerm(val type : NonTermType) : GraphItem {
                     return children[5].visit()
                 else return children[1].visit()
             }
+            NonTermType.fundef -> {
+                var f = Function()
+                var param = children[5]
+                while (param.children.size != 1) {
+                    ++f.numofparams
+                    f.paramnames.add((param.children[2] as Token).value)
+                    param = param.children[0]
+                }
+                ++f.numofparams
+                f.paramnames.add((param.children[0] as Token).value)
+                f.funref = this
+                funnames.values[(children[7] as Token).value] = f
+            }
         }
         return ""
     }
@@ -35,7 +48,7 @@ class NonTerm(val type : NonTermType) : GraphItem {
     override var children: MutableList<GraphItem> = mutableListOf()
 
     enum class NonTermType {
-        program, expr, constexpr, binexpr, ifexpr
+        program, expr, constexpr, binexpr, ifexpr, fundef, paramlist, arglist
     }
 }
 
@@ -65,10 +78,16 @@ class Parser {
                 is NonTerm -> when(x.type) {
 
                     NonTerm.NonTermType.program -> when(tokenStream[i].type) {
-                        Token.TokenType.identifier, Token.TokenType.number, Token.TokenType.minus, Token.TokenType.ob, Token.TokenType.osb -> {
+                        Token.TokenType.number, Token.TokenType.minus, Token.TokenType.ob, Token.TokenType.osb -> {
                             var p = stack.last()
                             stack.removeAt(stack.lastIndex)
                             stack.add(NonTerm(NonTerm.NonTermType.expr))
+                            p.children.add(stack.last())
+                        }
+                        Token.TokenType.identifier -> {
+                            var p = stack.last()
+                            stack.removeAt(stack.lastIndex)
+                            stack.add(NonTerm(NonTerm.NonTermType.fundef))
                             p.children.add(stack.last())
                         }
                     }
@@ -78,6 +97,12 @@ class Parser {
                             var p = stack.last()
                             stack.removeAt(stack.lastIndex)
                             stack.add(NonTerm(NonTerm.NonTermType.constexpr))
+                            p.children.add(stack.last())
+                        }
+                        Token.TokenType.identifier -> {
+                            var p = stack.last()
+                            stack.removeAt(stack.lastIndex)
+                            stack.add(Token(Token.TokenType.identifier))
                             p.children.add(stack.last())
                         }
                         Token.TokenType.ob -> {
@@ -154,6 +179,48 @@ class Parser {
                             p.children.add(stack.last())
                             stack.add(Token(Token.TokenType.osb))
                             p.children.add(stack.last())
+                        }
+                    }
+
+                    NonTerm.NonTermType.fundef -> when(tokenStream[i].type) {
+                        Token.TokenType.identifier -> {
+                            var p = stack.last()
+                            stack.removeAt(stack.lastIndex)
+                            stack.add(Token(Token.TokenType.ccb))
+                            p.children.add(stack.last())
+                            stack.add(NonTerm(NonTerm.NonTermType.expr))
+                            p.children.add(stack.last())
+                            stack.add(Token(Token.TokenType.ocb))
+                            p.children.add(stack.last())
+                            stack.add(Token(Token.TokenType.assign))
+                            p.children.add(stack.last())
+                            stack.add(Token(Token.TokenType.cb))
+                            p.children.add(stack.last())
+                            stack.add(NonTerm(NonTerm.NonTermType.paramlist))
+                            p.children.add(stack.last())
+                            stack.add(Token(Token.TokenType.ob))
+                            p.children.add(stack.last())
+                            stack.add(Token(Token.TokenType.identifier))
+                            p.children.add(stack.last())
+                        }
+                    }
+
+                    NonTerm.NonTermType.paramlist -> when(tokenStream[i].type) {
+                        Token.TokenType.identifier -> {
+                            var p = stack.last()
+                            stack.removeAt(stack.lastIndex)
+                            if(tokenStream[i + 1].type == Token.TokenType.comma) {
+                                stack.add(NonTerm(NonTerm.NonTermType.paramlist))
+                                p.children.add(stack.last())
+                                stack.add(Token(Token.TokenType.comma))
+                                p.children.add(stack.last())
+                                stack.add(Token(Token.TokenType.identifier))
+                                p.children.add(stack.last())
+                            }
+                            else {
+                                stack.add(Token(Token.TokenType.identifier))
+                                p.children.add(stack.last())
+                            }
                         }
                     }
                 }
