@@ -11,15 +11,15 @@ object funnames {
 }
 
 fun main() {
-    val lexer = Lexer()
     while (true) {
+        var lexer = Lexer()
         lexer.source = readLine()!!
         lexer.lex()
-        var p = Parser()
-        p.tokenStream = lexer.tokenStream
-        p.parse()
-        if((p.root?.children?.get(0) as NonTerm).type != NonTerm.NonTermType.fundef){
-            print(p.root?.visit())
+        var parser = Parser()
+        parser.tokenStream = lexer.tokenStream
+        parser.parse()
+        if((parser.root?.children?.get(0) as NonTerm).type != NonTerm.NonTermType.fundef){
+            print(parser.root?.visit())
             exitProcess(0)
         }
     }
