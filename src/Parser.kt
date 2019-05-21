@@ -18,6 +18,7 @@ class NonTerm(val type : NonTermType) : GraphItem {
                     "-" -> return (children[3].visit().toInt() - children[1].visit().toInt()).toString()
                     "*" -> return (children[3].visit().toInt() * children[1].visit().toInt()).toString()
                     "/" -> return (children[3].visit().toInt() / children[1].visit().toInt()).toString()
+                    "%" -> return (children[3].visit().toInt() % children[1].visit().toInt()).toString()
                     "<" -> return if(children[3].visit().toInt() < children[1].visit().toInt()) 1.toString() else 0.toString()
                     ">" -> return if(children[3].visit().toInt() > children[1].visit().toInt()) 1.toString() else 0.toString()
                 }
